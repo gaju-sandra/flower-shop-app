@@ -1,0 +1,347 @@
+### =====================================================================
+### Bloom & Co. API - manual tests (no Postman account needed)
+###
+### How to use:
+###   1. Install the VS Code extension "REST Client" (by Huachao Mao).
+###   2. Start the backend:  cd backend  ->  .\mvnw.cmd spring-boot:run
+###   3. Click "Send Request" above any request below. The response opens on the right.
+###   4. Always run the LOGIN request of a section first - the token is reused
+###      automatically by the requests under it.
+### =====================================================================
+
+@baseUrl = http://localhost:5000/api
+
+
+### ---------------------------------------------------------------------
+### 0. HEALTH - is the server running and the database connected?
+### ---------------------------------------------------------------------
+GET {{baseUrl}}/health
+
+
+### ---------------------------------------------------------------------
+### 1. PUBLIC CATALOGUE (no login)
+### ---------------------------------------------------------------------
+
+### All flowers, most popular first
+GET {{baseUrl}}/products?sort=popular&limit=12
+
+### Search + price filter
+GET {{baseUrl}}/products?search=rose&minPrice=5000&maxPrice=30000&sort=price_asc
+
+### Categories
+GET {{baseUrl}}/products/categories
+
+### One flower with reviews and related flowers
+GET {{baseUrl}}/products/red-roses
+
+### Current special offers
+GET {{baseUrl}}/promotions/active
+
+### Store settings + gift options
+GET {{baseUrl}}/settings/public
+
+### Contact form
+POST {{baseUrl}}/contact
+Content-Type: application/json
+
+{
+  "name": "Test Visitor",
+  "email": "visitor@example.com",
+  "phone": "0788123456",
+  "subject": "Wedding flowers",
+  "message": "Do you deliver bridal bouquets to Musanze?"
+}
+
+
+### ---------------------------------------------------------------------
+### 2. AUTH
+### ---------------------------------------------------------------------
+
+### Register a new customer (change the email each time you run it)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "Customer",
+  "email": "test{{$randomInt 1000 99999}}@example.com",
+  "phone": "0788555111",
+  "password": "Flowers@2026",
+  "confirmPassword": "Flowers@2026",
+  "address": { "province": "Kigali City", "district": "Gasabo", "sector": "Remera", "street": "KG 11 Ave, House 5" }
+}
+
+### Register with bad data -> 400 with the list of validation errors
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{ "firstName": "A", "lastName": "", "email": "not-an-email", "phone": "123", "password": "weak", "confirmPassword": "x" }
+
+### Wrong password -> 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "melissa@example.com", "password": "WrongPassword1" }
+
+
+### ---------------------------------------------------------------------
+### 3. CUSTOMER  (run "Login as customer" first)
+### ---------------------------------------------------------------------
+
+# @name customerLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "melissa@example.com", "password": "Customer@123", "remember": true }
+
+###
+@customerToken = {{customerLogin.response.body.$.accessToken}}
+
+### Who am I
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{customerToken}}
+
+### Customer dashboard (summary cards + recent orders)
+GET {{baseUrl}}/profile/dashboard
+Authorization: Bearer {{customerToken}}
+
+### Add 2 Red Roses to the cart
+POST {{baseUrl}}/cart/items
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "productId": 1, "quantity": 2 }
+
+### View cart (subtotal, delivery fee, total)
+GET {{baseUrl}}/cart
+Authorization: Bearer {{customerToken}}
+
+### Change quantity to 3
+PATCH {{baseUrl}}/cart/items/1
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "quantity": 3 }
+
+### Add a flower to the wishlist
+POST {{baseUrl}}/wishlist/2
+Authorization: Bearer {{customerToken}}
+
+### Saved delivery addresses
+GET {{baseUrl}}/addresses
+Authorization: Bearer {{customerToken}}
+
+### Checkout preview: gift wrap + greeting card + promo code
+POST {{baseUrl}}/orders/quote
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{ "giftOptions": ["gift_wrap", "greeting_card"], "promoCode": "BLOOM10" }
+
+### Place the order (paid with MTN Mobile Money, delivered in 2 days)
+# @name placeOrder
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "contact": { "fullName": "Melissa Ineza", "phone": "0788111222", "email": "melissa@example.com" },
+  "delivery": {
+    "province": "Kigali City", "district": "Gasabo", "sector": "Kimihurura",
+    "street": "KG 9 Ave, House 12", "locationDescription": "Blue gate next to the pharmacy",
+    "date": "{{$datetime 'YYYY-MM-DD' 2 d}}", "time": "10:00 - 12:00"
+  },
+  "instructions": "Please call me when you arrive.",
+  "message": { "recipientName": "Sarah", "type": "birthday", "text": "Happy Birthday Sarah! May your day be as beautiful as these flowers." },
+  "giftOptions": ["gift_wrap"],
+  "promoCode": "BLOOM10",
+  "payment": { "method": "mtn_momo", "phone": "0788111222" }
+}
+
+###
+@orderId = {{placeOrder.response.body.$.order.id}}
+
+### My orders
+GET {{baseUrl}}/orders/mine
+Authorization: Bearer {{customerToken}}
+
+### Track the order just placed (items, history, delivery, payment)
+GET {{baseUrl}}/orders/{{orderId}}
+Authorization: Bearer {{customerToken}}
+
+### Payment declined demo: numbers ending in 0000 are declined -> 402
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "contact": { "fullName": "Melissa Ineza", "phone": "0788111222", "email": "melissa@example.com" },
+  "delivery": { "province": "Kigali City", "district": "Gasabo", "sector": "Kimihurura", "street": "KG 9 Ave", "date": "{{$datetime 'YYYY-MM-DD' 2 d}}", "time": "10:00 - 12:00" },
+  "payment": { "method": "mtn_momo", "phone": "0788110000" }
+}
+
+### RBAC: a customer must NOT see the admin dashboard -> 403 Forbidden
+GET {{baseUrl}}/reports/admin-dashboard
+Authorization: Bearer {{customerToken}}
+
+
+### ---------------------------------------------------------------------
+### 4. STAFF  (run "Login as staff" first)
+### ---------------------------------------------------------------------
+
+# @name staffLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "aline.staff@bloomandco.rw", "password": "Staff@123" }
+
+###
+@staffToken = {{staffLogin.response.body.$.accessToken}}
+
+### Staff dashboard
+GET {{baseUrl}}/reports/staff-dashboard
+Authorization: Bearer {{staffToken}}
+
+### New (pending) orders
+GET {{baseUrl}}/orders?status=pending
+Authorization: Bearer {{staffToken}}
+
+### Confirm the order placed in section 3
+PATCH {{baseUrl}}/orders/{{orderId}}/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "status": "confirmed", "note": "Confirmed by phone" }
+
+### Move it on: preparing
+PATCH {{baseUrl}}/orders/{{orderId}}/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "status": "preparing" }
+
+### Deliveries list
+GET {{baseUrl}}/deliveries
+Authorization: Bearer {{staffToken}}
+
+### Available couriers
+GET {{baseUrl}}/deliveries/couriers
+Authorization: Bearer {{staffToken}}
+
+### Customers
+GET {{baseUrl}}/customers?search=melissa
+Authorization: Bearer {{staffToken}}
+
+### Contact messages
+GET {{baseUrl}}/contact
+Authorization: Bearer {{staffToken}}
+
+### Update stock (allowed for staff)
+PATCH {{baseUrl}}/products/1/stock
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "stock": 50 }
+
+### RBAC: staff must NOT create products -> 403 Forbidden
+POST {{baseUrl}}/products
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "name": "Should fail", "price": 1000, "stock": 1 }
+
+
+### ---------------------------------------------------------------------
+### 5. ADMIN  (run "Login as admin" first)
+### ---------------------------------------------------------------------
+
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@bloomandco.rw", "password": "Admin@123" }
+
+###
+@adminToken = {{adminLogin.response.body.$.accessToken}}
+
+### Admin dashboard (stats + chart data)
+GET {{baseUrl}}/reports/admin-dashboard
+Authorization: Bearer {{adminToken}}
+
+### Sales over the last 90 days
+GET {{baseUrl}}/reports/sales?days=90
+Authorization: Bearer {{adminToken}}
+
+### Activity log (MongoDB documents) + infrastructure status
+GET {{baseUrl}}/reports/activity
+Authorization: Bearer {{adminToken}}
+
+### All products incl. inactive
+GET {{baseUrl}}/products/admin/all
+Authorization: Bearer {{adminToken}}
+
+### Create a product
+# @name newProduct
+POST {{baseUrl}}/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Peonies",
+  "description": "Created from VS Code",
+  "categoryId": "1",
+  "price": 21000,
+  "discountPercent": 5,
+  "stock": 10,
+  "occasions": ["wedding"],
+  "status": "active"
+}
+
+### Update its price and stock
+PUT {{baseUrl}}/products/{{newProduct.response.body.$.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "price": 19500, "stock": 12 }
+
+### Delete it
+DELETE {{baseUrl}}/products/{{newProduct.response.body.$.id}}
+Authorization: Bearer {{adminToken}}
+
+### Staff list
+GET {{baseUrl}}/staff
+Authorization: Bearer {{adminToken}}
+
+### Add a staff member
+POST {{baseUrl}}/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "New",
+  "lastName": "Courier",
+  "email": "courier{{$randomInt 1000 99999}}@bloomandco.rw",
+  "phone": "0788000199",
+  "password": "Courier@2026",
+  "staffRole": "delivery_staff"
+}
+
+### Payments (with collected / outstanding totals)
+GET {{baseUrl}}/payments
+Authorization: Bearer {{adminToken}}
+
+### Promotions
+GET {{baseUrl}}/promotions
+Authorization: Bearer {{adminToken}}
+
+### Reviews
+GET {{baseUrl}}/reviews
+Authorization: Bearer {{adminToken}}
+
+### Settings
+GET {{baseUrl}}/settings
+Authorization: Bearer {{adminToken}}
+
+### Orders report as CSV (this year)
+GET {{baseUrl}}/reports/orders.csv?from=2026-01-01&to=2026-12-31
+Authorization: Bearer {{adminToken}}
