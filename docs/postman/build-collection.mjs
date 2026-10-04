@@ -64,7 +64,7 @@ const collection = {
         auth: false,
         tests: saveToken,
         body: {
-          firstName: 'Test', lastName: 'Customer', email: 'test.customer@example.com', phone: '0788555111',
+          firstName: 'Test', lastName: 'Customer', email: 'test.{{$timestamp}}@example.com', phone: '0788555111',
           password: 'Flowers@2026', confirmPassword: 'Flowers@2026',
           address: { province: 'Kigali City', district: 'Gasabo', sector: 'Remera', street: 'KG 11 Ave, House 5' },
         },
@@ -94,7 +94,10 @@ const collection = {
         body: { name: 'Postman Tester', email: 'tester@example.com', phone: '0788123456', subject: 'Wedding flowers', message: 'Do you deliver bridal bouquets to Musanze?' },
       }),
     ]),
-    folder('3. Customer (login as customer first)', [
+    folder('3. Customer', [
+      req('Login as customer', 'POST', '/auth/login', {
+        auth: false, tests: saveToken, body: { email: 'melissa@example.com', password: 'Customer@123' },
+      }),
       req('Dashboard summary', 'GET', '/profile/dashboard'),
       req('Get cart', 'GET', '/cart'),
       req('Add to cart', 'POST', '/cart/items', { body: { productId: 1, quantity: 2 } }),
@@ -128,7 +131,10 @@ const collection = {
       req('Products I can review', 'GET', '/reviews/mine/reviewable'),
       req('RBAC check: customer opens admin report (expect 403)', 'GET', '/reports/admin-dashboard', { tests: forbidden }),
     ]),
-    folder('4. Staff (login as staff first)', [
+    folder('4. Staff', [
+      req('Login as staff', 'POST', '/auth/login', {
+        auth: false, tests: saveToken, body: { email: 'aline.staff@bloomandco.rw', password: 'Staff@123' },
+      }),
       req('Staff dashboard', 'GET', '/reports/staff-dashboard'),
       req('All orders (pending)', 'GET', '/orders?status=pending', { query: [['status', 'pending']] }),
       req('Confirm an order', 'PATCH', '/orders/{{orderId}}/status', { body: { status: 'confirmed', note: 'Confirmed by phone' } }),
@@ -141,7 +147,10 @@ const collection = {
         tests: forbidden, body: { name: 'Should fail', price: 1000, stock: 1 },
       }),
     ]),
-    folder('5. Admin (login as admin first)', [
+    folder('5. Admin', [
+      req('Login as admin', 'POST', '/auth/login', {
+        auth: false, tests: saveToken, body: { email: 'admin@bloomandco.rw', password: 'Admin@123' },
+      }),
       req('Admin dashboard + charts data', 'GET', '/reports/admin-dashboard'),
       req('Sales over 90 days', 'GET', '/reports/sales?days=90', { query: [['days', '90']] }),
       req('Activity log (MongoDB) + infrastructure', 'GET', '/reports/activity'),
@@ -155,12 +164,12 @@ const collection = {
       req('Create category', 'POST', '/products/categories', { body: { name: 'Sympathy Flowers', description: 'Gentle arrangements' } }),
       req('Staff list', 'GET', '/staff'),
       req('Add staff member', 'POST', '/staff', {
-        body: { firstName: 'Postman', lastName: 'Courier', email: 'postman.courier@bloomandco.rw', phone: '0788000199', password: 'Courier@2026', staffRole: 'delivery_staff' },
+        body: { firstName: 'Postman', lastName: 'Courier', email: 'courier.{{$timestamp}}@bloomandco.rw', phone: '0788000199', password: 'Courier@2026', staffRole: 'delivery_staff' },
       }),
       req('Payments', 'GET', '/payments'),
       req('Promotions', 'GET', '/promotions'),
       req('Create promotion', 'POST', '/promotions', {
-        body: { code: 'SPRING25', title: 'Spring sale 25%', discountPercent: 25, minOrder: 15000, startsAt: new Date().toISOString().slice(0, 10), endsAt: null, active: true },
+        body: { code: 'SPRING{{$randomInt}}', title: 'Spring sale 25%', discountPercent: 25, minOrder: 15000, startsAt: new Date().toISOString().slice(0, 10), endsAt: null, active: true },
       }),
       req('Reviews', 'GET', '/reviews'),
       req('Settings', 'GET', '/settings'),

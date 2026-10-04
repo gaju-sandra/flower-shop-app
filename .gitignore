@@ -6,3 +6,8 @@ coverage/
 server/uploads/*
 !server/uploads/.gitkeep
 .DS_Store
+
+# Spring Boot
+backend/target/
+backend/uploads/*
+!backend/uploads/.gitkeep

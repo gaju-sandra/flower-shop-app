@@ -1,0 +1,27 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Wrapper (Linux / macOS / Git Bash / CI): downloads Maven on first use
+# into ~/.m2/wrapper/dists, then runs it.   ./mvnw spring-boot:run
+# ----------------------------------------------------------------------------
+set -e
+MVNW_VERSION=3.9.9
+MVNW_HOME="$HOME/.m2/wrapper/dists/apache-maven-$MVNW_VERSION"
+MVNW_URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$MVNW_VERSION/apache-maven-$MVNW_VERSION-bin.tar.gz"
+
+if [ ! -x "$MVNW_HOME/bin/mvn" ]; then
+  echo "Downloading Maven $MVNW_VERSION (first run only)..."
+  mkdir -p "$MVNW_HOME"
+  TMP=$(mktemp -d)
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$MVNW_URL" -o "$TMP/maven.tar.gz"
+  else
+    wget -q "$MVNW_URL" -O "$TMP/maven.tar.gz"
+  fi
+  tar -xzf "$TMP/maven.tar.gz" -C "$TMP"
+  cp -R "$TMP/apache-maven-$MVNW_VERSION/." "$MVNW_HOME/"
+  rm -rf "$TMP"
+fi
+
+MAVEN_PROJECTBASEDIR=$(cd "$(dirname "$0")" && pwd)
+export MAVEN_PROJECTBASEDIR
+exec "$MVNW_HOME/bin/mvn" "$@"

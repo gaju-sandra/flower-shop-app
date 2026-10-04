@@ -207,7 +207,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Customer\",\n  \"email\": \"test.customer@example.com\",\n  \"phone\": \"0788555111\",\n  \"password\": \"Flowers@2026\",\n  \"confirmPassword\": \"Flowers@2026\",\n  \"address\": {\n    \"province\": \"Kigali City\",\n    \"district\": \"Gasabo\",\n    \"sector\": \"Remera\",\n    \"street\": \"KG 11 Ave, House 5\"\n  }\n}"
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Customer\",\n  \"email\": \"test.{{$timestamp}}@example.com\",\n  \"phone\": \"0788555111\",\n  \"password\": \"Flowers@2026\",\n  \"confirmPassword\": \"Flowers@2026\",\n  \"address\": {\n    \"province\": \"Kigali City\",\n    \"district\": \"Gasabo\",\n    \"sector\": \"Remera\",\n    \"street\": \"KG 11 Ave, House 5\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -694,8 +694,50 @@
       ]
     },
     {
-      "name": "3. Customer (login as customer first)",
+      "name": "3. Customer",
       "item": [
+        {
+          "name": "Login as customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) { pm.collectionVariables.set('accessToken', body.accessToken); }",
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"melissa@example.com\",\n  \"password\": \"Customer@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
         {
           "name": "Dashboard summary",
           "event": [
@@ -1268,8 +1310,50 @@
       ]
     },
     {
-      "name": "4. Staff (login as staff first)",
+      "name": "4. Staff",
       "item": [
+        {
+          "name": "Login as staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) { pm.collectionVariables.set('accessToken', body.accessToken); }",
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aline.staff@bloomandco.rw\",\n  \"password\": \"Staff@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
         {
           "name": "Staff dashboard",
           "event": [
@@ -1657,8 +1741,50 @@
       ]
     },
     {
-      "name": "5. Admin (login as admin first)",
+      "name": "5. Admin",
       "item": [
+        {
+          "name": "Login as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) { pm.collectionVariables.set('accessToken', body.accessToken); }",
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@bloomandco.rw\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
         {
           "name": "Admin dashboard + charts data",
           "event": [
@@ -2067,7 +2193,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Courier\",\n  \"email\": \"postman.courier@bloomandco.rw\",\n  \"phone\": \"0788000199\",\n  \"password\": \"Courier@2026\",\n  \"staffRole\": \"delivery_staff\"\n}"
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Courier\",\n  \"email\": \"courier.{{$timestamp}}@bloomandco.rw\",\n  \"phone\": \"0788000199\",\n  \"password\": \"Courier@2026\",\n  \"staffRole\": \"delivery_staff\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/staff",
@@ -2187,7 +2313,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"SPRING25\",\n  \"title\": \"Spring sale 25%\",\n  \"discountPercent\": 25,\n  \"minOrder\": 15000,\n  \"startsAt\": \"2026-10-04\",\n  \"endsAt\": null,\n  \"active\": true\n}"
+              "raw": "{\n  \"code\": \"SPRING{{$randomInt}}\",\n  \"title\": \"Spring sale 25%\",\n  \"discountPercent\": 25,\n  \"minOrder\": 15000,\n  \"startsAt\": \"2026-10-04\",\n  \"endsAt\": null,\n  \"active\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/promotions",
